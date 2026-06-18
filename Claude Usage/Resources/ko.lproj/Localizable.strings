@@ -185,6 +185,8 @@
 "appearance.monochrome_description" = "상태 색상(녹색/주황색/빨간색) 대신 적응형 색상 사용";
 "appearance.show_labels_title" = "아이콘 레이블 표시";
 "appearance.show_labels_description" = "각 메트릭에 접두사 레이블(S:, W:, API:) 표시";
+"appearance.show_value_in_icon_title" = "링 아이콘에 값 표시";
+"appearance.show_value_in_icon_description" = "\"아이콘+막대\" 스타일에서 링 중앙에 S/W 대신 사용량 값을 표시";
 "appearance.show_remaining_title" = "남은 용량 퍼센트 표시";
 "appearance.show_remaining_description" = "사용된 퍼센트 대신 남은 용량 표시 (macOS 배터리처럼)";
 "appearance.pace_marker_section_title" = "속도 마커";

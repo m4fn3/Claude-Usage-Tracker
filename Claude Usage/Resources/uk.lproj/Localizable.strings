@@ -451,6 +451,8 @@
 "appearance.monochrome_description" = "Використовувати адаптивний колір замість кольорів статусу (зелений/помаранчевий/червоний)";
 "appearance.show_labels_title" = "Показувати мітки іконок";
 "appearance.show_labels_description" = "Відображати префіксні мітки (S:, W:, API:) для кожного показника";
+"appearance.show_value_in_icon_title" = "Показувати значення на кільцевому значку";
+"appearance.show_value_in_icon_description" = "У стилі «Значок зі смугою» показувати значення використання в центрі кільця замість S/W";
 "appearance.show_remaining_title" = "Показувати залишковий відсоток";
 "appearance.show_remaining_description" = "Відображати залишок замість використаного відсотка (як батарея macOS)";
 "appearance.pace_marker_section_title" = "Маркер темпу";

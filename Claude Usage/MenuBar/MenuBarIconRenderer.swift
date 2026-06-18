@@ -122,6 +122,7 @@ final class MenuBarIconRenderer {
                 colorMode: colorMode,
                 singleColorHex: singleColorHex,
                 showIconName: showIconName,
+                showValue: globalConfig.showValueInIcon,
                 timeMarkerFraction: timeMarkerFraction,
                 paceStatus: paceStatus,
                 showPaceMarker: showPaceMarker
@@ -527,13 +528,17 @@ final class MenuBarIconRenderer {
         colorMode: MenuBarColorMode,
         singleColorHex: String,
         showIconName: Bool,
+        showValue: Bool = false,
         timeMarkerFraction: CGFloat? = nil,
         paceStatus: PaceStatus? = nil,
         showPaceMarker: Bool = false
     ) -> NSImage {
-        // For circle: make it bigger to fit S/W in center
-        let circleSize: CGFloat = showIconName ? 22 : 18  // Bigger when showing label
-        let size: CGFloat = showIconName ? 22 : 18
+        // The ring can carry center text: the usage value (when showValue is on) takes
+        // priority over the S/W letter (shown when showIconName is on).
+        let hasCenterText = showValue || showIconName
+        // For circle: make it bigger to fit center text
+        let circleSize: CGFloat = hasCenterText ? 22 : 18  // Bigger when showing center text
+        let size: CGFloat = hasCenterText ? 22 : 18
         let totalWidth = circleSize + 1
 
         let image = NSImage(size: NSSize(width: totalWidth, height: size))
@@ -603,8 +608,21 @@ final class MenuBarIconRenderer {
             drawPaceMarkerTick(tickPath, paceStatus: paceStatus, showPaceMarker: showPaceMarker, isDarkMode: isDarkMode)
         }
 
-        // Draw S/W in the CENTER of the circle
-        if showIconName {
+        // Draw center text: usage value (when enabled) takes priority over the S/W letter
+        if showValue {
+            // Show the usage percentage as a bare number (no "%") so it fits the ring.
+            // Shrink the font for 3-digit values (e.g. 100) to stay inside the circle.
+            let valueText = "\(Int(metricData.percentage.rounded()))" as NSString
+            let fontSize: CGFloat = valueText.length >= 3 ? 7.0 : 9.0
+            let labelAttributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold),
+                .foregroundColor: textColor
+            ]
+            let labelSize = valueText.size(withAttributes: labelAttributes)
+            let labelX = center.x - labelSize.width / 2
+            let labelY = center.y - labelSize.height / 2
+            valueText.draw(at: NSPoint(x: labelX, y: labelY), withAttributes: labelAttributes)
+        } else if showIconName {
             let labelAttributes: [NSAttributedString.Key: Any] = [
                 .font: NSFont.systemFont(ofSize: 9, weight: .bold),
                 .foregroundColor: textColor

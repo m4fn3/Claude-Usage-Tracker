@@ -355,6 +355,9 @@ struct MenuBarIconConfiguration: Codable, Equatable {
     var colorMode: MenuBarColorMode
     var singleColorHex: String
     var showIconNames: Bool
+    /// When true, the "Icon with Bar" (ring) style shows the usage value in the ring
+    /// center instead of the S/W letter. Only affects metrics using the `.icon` style.
+    var showValueInIcon: Bool
     var showRemainingPercentage: Bool
     var showTimeMarker: Bool
     var showPaceMarker: Bool
@@ -365,6 +368,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         colorMode: MenuBarColorMode = .multiColor,
         singleColorHex: String = "#00BFFF",
         showIconNames: Bool = true,
+        showValueInIcon: Bool = false,
         showRemainingPercentage: Bool = false,
         showTimeMarker: Bool = true,
         showPaceMarker: Bool = true,
@@ -378,6 +382,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         self.colorMode = colorMode
         self.singleColorHex = singleColorHex
         self.showIconNames = showIconNames
+        self.showValueInIcon = showValueInIcon
         self.showRemainingPercentage = showRemainingPercentage
         self.showTimeMarker = showTimeMarker
         self.showPaceMarker = showPaceMarker
@@ -392,6 +397,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         case colorMode
         case singleColorHex
         case showIconNames
+        case showValueInIcon
         case showRemainingPercentage
         case showTimeMarker
         case showPaceMarker
@@ -411,6 +417,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
 
         singleColorHex = try container.decodeIfPresent(String.self, forKey: .singleColorHex) ?? "#00BFFF"
         showIconNames = try container.decode(Bool.self, forKey: .showIconNames)
+        showValueInIcon = try container.decodeIfPresent(Bool.self, forKey: .showValueInIcon) ?? false
         showRemainingPercentage = try container.decodeIfPresent(Bool.self, forKey: .showRemainingPercentage) ?? false
         showTimeMarker = try container.decodeIfPresent(Bool.self, forKey: .showTimeMarker) ?? true
         showPaceMarker = try container.decodeIfPresent(Bool.self, forKey: .showPaceMarker) ?? false
@@ -423,6 +430,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         try container.encode(colorMode, forKey: .colorMode)
         try container.encode(singleColorHex, forKey: .singleColorHex)
         try container.encode(showIconNames, forKey: .showIconNames)
+        try container.encode(showValueInIcon, forKey: .showValueInIcon)
         try container.encode(showRemainingPercentage, forKey: .showRemainingPercentage)
         try container.encode(showTimeMarker, forKey: .showTimeMarker)
         try container.encode(showPaceMarker, forKey: .showPaceMarker)

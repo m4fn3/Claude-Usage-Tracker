@@ -451,6 +451,8 @@
 "appearance.monochrome_description" = "Use adaptive color instead of status colors (green/orange/red)";
 "appearance.show_labels_title" = "Show Icon Labels";
 "appearance.show_labels_description" = "Display prefix labels (S:, W:, API:) for each metric";
+"appearance.show_value_in_icon_title" = "Show Value in Ring Icon";
+"appearance.show_value_in_icon_description" = "In the \"Icon with Bar\" style, show the usage value in the ring center instead of S/W";
 "appearance.show_remaining_title" = "Show Remaining Percentage";
 "appearance.show_remaining_description" = "Display remaining capacity instead of used percentage (like macOS battery)";
 "appearance.pace_marker_section_title" = "Pace Marker";

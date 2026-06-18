@@ -428,6 +428,8 @@
 "appearance.monochrome_description" = "Usar cor adaptativa em vez de cores de status (verde/laranja/vermelho)";
 "appearance.show_labels_title" = "Mostrar Rótulos dos Ícones";
 "appearance.show_labels_description" = "Exibir rótulos de prefixo (S:, W:, API:) para cada métrica";
+"appearance.show_value_in_icon_title" = "Mostrar valor no ícone de anel";
+"appearance.show_value_in_icon_description" = "No estilo \"Ícone com barra\", mostrar o valor de uso no centro do anel em vez de S/W";
 "appearance.show_remaining_title" = "Mostrar Porcentagem Restante";
 "appearance.show_remaining_description" = "Exibir capacidade restante em vez da porcentagem usada (como a bateria do macOS)";
 "appearance.pace_marker_section_title" = "Marcador de Ritmo";

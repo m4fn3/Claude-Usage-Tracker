@@ -452,6 +452,8 @@
 "appearance.monochrome_description" = "使用自適應色彩取代狀態色彩，如綠/橙/紅";
 "appearance.show_labels_title" = "顯示圖示標籤";
 "appearance.show_labels_description" = "為每個指標顯示前綴標籤（S:, W:, API:）";
+"appearance.show_value_in_icon_title" = "在環形圖示中顯示數值";
+"appearance.show_value_in_icon_description" = "在「圖示加進度條」樣式中，於環形中心顯示使用量數值而非 S/W";
 "appearance.show_remaining_title" = "顯示剩餘百分比";
 "appearance.show_remaining_description" = "顯示剩餘容量而不是已使用百分比（類似 macOS 電池）";
 "appearance.pace_marker_section_title" = "節奏標記";

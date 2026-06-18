@@ -430,6 +430,8 @@
 "appearance.monochrome_description" = "Adaptive Farbe anstelle von Statusfarben verwenden (grün/orange/rot)";
 "appearance.show_labels_title" = "Symbol-Labels Anzeigen";
 "appearance.show_labels_description" = "Präfix-Labels (S:, W:, API:) für jede Metrik anzeigen";
+"appearance.show_value_in_icon_title" = "Wert im Ring-Symbol anzeigen";
+"appearance.show_value_in_icon_description" = "Im Stil „Symbol mit Balken“ den Nutzungswert in der Ringmitte statt S/W anzeigen";
 "appearance.show_remaining_title" = "Verbleibender Prozentsatz anzeigen";
 "appearance.show_remaining_description" = "Verbleibende Kapazität statt genutzter Prozentsatz anzeigen (wie macOS-Batterie)";
 "appearance.pace_marker_section_title" = "Tempomarkierung";

@@ -618,9 +618,14 @@ final class StatusBarUIManager {
         // periodically repaint to the default logo after successful refreshes.
         let hasAnyCredentials = hasAnyAvailableCredentials(for: profile)
         if !hasAnyCredentials || config.enabledMetrics.isEmpty {
-            // Show default app logo
-            if let statusItem = statusItems[.session],  // We use .session as placeholder key
-               let button = statusItem.button {
+            // Paint the default app logo into EVERY existing status item so the number
+            // of menu bar slots the user configured stays stable during a transient
+            // credential/session gap. (Previously only the .session placeholder was
+            // painted, which combined with collapsing to a single item caused e.g.
+            // Week to disappear and never come back.) When credentials return, the
+            // normal metric loop below repaints real data into each slot.
+            for (_, statusItem) in statusItems {
+                guard let button = statusItem.button else { continue }
                 // Get actual menu bar appearance from the button
                 let menuBarIsDark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
                 let logoImage = renderer.createDefaultAppLogo(isDarkMode: menuBarIsDark)

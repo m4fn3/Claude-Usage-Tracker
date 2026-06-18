@@ -122,30 +122,14 @@ class MenuBarManager: NSObject, ObservableObject {
             // Multi-profile mode - setup with selected profiles
             setupMultiProfileMode()
         } else {
-            // Single profile mode - setup with active profile's config
+            // Single profile mode - setup with active profile's config.
+            // Always create one status item per configured metric, regardless of
+            // credential availability. Credentials only affect what each item paints
+            // (real data vs the default logo, handled in updateAllButtons). This keeps
+            // the configured number of menu bar items stable so a transient credential
+            // gap can't permanently collapse e.g. Session+Week down to a single icon.
             let config = profileManager.activeProfile?.iconConfig ?? .default
-            // Includes system Keychain CLI credentials as a fallback so users who
-            // only authenticated via `claude login` still get metrics enabled.
-            let hasCredentials = hasAnyAvailableCredentials()
-
-            // If no credentials anywhere, create empty config to show default logo
-            let displayConfig: MenuBarIconConfiguration
-            if !hasCredentials {
-                displayConfig = MenuBarIconConfiguration(
-                    colorMode: config.colorMode,
-                    singleColorHex: config.singleColorHex,
-                    showIconNames: config.showIconNames,
-                    metrics: config.metrics.map { metric in
-                        var updatedMetric = metric
-                        updatedMetric.isEnabled = false
-                        return updatedMetric
-                    }
-                )
-            } else {
-                displayConfig = config
-            }
-
-            statusBarUIManager?.setup(target: self, action: #selector(togglePopover), config: displayConfig)
+            statusBarUIManager?.setup(target: self, action: #selector(togglePopover), config: config)
         }
 
         // Setup popover
@@ -430,32 +414,14 @@ class MenuBarManager: NSObject, ObservableObject {
             return
         }
 
-        // Keep configuration decisions aligned with the fetch path so users with
-        // only system Keychain CLI credentials keep their configured metric items.
-        let hasUsageCredentials = hasAnyAvailableCredentials()
-
-        // If no usage credentials, use an empty config (will show default logo)
-        let displayConfig: MenuBarIconConfiguration
-        if !hasUsageCredentials {
-            // Create config with no enabled metrics (will trigger default logo)
-            displayConfig = MenuBarIconConfiguration(
-                colorMode: config.colorMode,
-                singleColorHex: config.singleColorHex,
-                showIconNames: config.showIconNames,
-                metrics: config.metrics.map { metric in
-                    var updatedMetric = metric
-                    updatedMetric.isEnabled = false
-                    return updatedMetric
-                }
-            )
-        } else {
-            displayConfig = config
-        }
-
+        // Always reflect the user's configured metrics in the status item set.
+        // Credential availability only changes what each item paints (data vs the
+        // default logo, handled in updateAllButtons) — never how many items exist —
+        // so a transient credential gap can't collapse Session+Week into one icon.
         statusBarUIManager?.updateConfiguration(
             target: self,
             action: #selector(togglePopover),
-            config: displayConfig
+            config: config
         )
 
         // Defer icon update to next run loop iteration to let NSStatusBar finalize layout
@@ -1173,27 +1139,10 @@ class MenuBarManager: NSObject, ObservableObject {
     private func setupSingleProfileMode() {
         guard let profile = profileManager.activeProfile else { return }
 
-        let hasUsageCredentials = hasAnyAvailableCredentials()
+        // Always create one status item per configured metric; credential gaps only
+        // change what each item paints (data vs default logo), not the item count.
         let config = profile.iconConfig
-
-        // If no usage credentials, create empty config to show default logo
-        let displayConfig: MenuBarIconConfiguration
-        if !hasUsageCredentials {
-            displayConfig = MenuBarIconConfiguration(
-                colorMode: config.colorMode,
-                singleColorHex: config.singleColorHex,
-                showIconNames: config.showIconNames,
-                metrics: config.metrics.map { metric in
-                    var updatedMetric = metric
-                    updatedMetric.isEnabled = false
-                    return updatedMetric
-                }
-            )
-        } else {
-            displayConfig = config
-        }
-
-        statusBarUIManager?.setup(target: self, action: #selector(togglePopover), config: displayConfig)
+        statusBarUIManager?.setup(target: self, action: #selector(togglePopover), config: config)
 
         // Defer icon update to next run loop iteration to let NSStatusBar finalize layout
         DispatchQueue.main.async { [weak self] in

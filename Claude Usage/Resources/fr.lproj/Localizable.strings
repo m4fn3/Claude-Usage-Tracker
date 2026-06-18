@@ -414,6 +414,8 @@
 "appearance.monochrome_description" = "Utiliser une couleur adaptative au lieu des couleurs d'état (vert/orange/rouge)";
 "appearance.show_labels_title" = "Afficher les Étiquettes d'Icônes";
 "appearance.show_labels_description" = "Afficher les étiquettes de préfixe (S:, W:, API:) pour chaque métrique";
+"appearance.show_value_in_icon_title" = "Afficher la valeur dans l'icône en anneau";
+"appearance.show_value_in_icon_description" = "Dans le style « Icône avec barre », afficher la valeur d'utilisation au centre de l'anneau au lieu de S/W";
 "appearance.show_remaining_title" = "Afficher le Pourcentage Restant";
 "appearance.show_remaining_description" = "Afficher la capacité restante au lieu du pourcentage utilisé (comme la batterie macOS)";
 "appearance.pace_marker_section_title" = "Marqueur de Rythme";

@@ -451,6 +451,8 @@
 "appearance.monochrome_description" = "Durum renkleri (yeşil/turuncu/kırmızı) yerine uyarlanabilir renk kullan";
 "appearance.show_labels_title" = "Simge Etiketlerini Göster";
 "appearance.show_labels_description" = "Her metrik için ön ek etiketlerini (S:, W:, API:) göster";
+"appearance.show_value_in_icon_title" = "Halka Simgesinde Değeri Göster";
+"appearance.show_value_in_icon_description" = "\"Çubuklu Simge\" stilinde, halka ortasında S/W yerine kullanım değerini göster";
 "appearance.show_remaining_title" = "Kalan Yüzdeyi Göster";
 "appearance.show_remaining_description" = "Kullanılan yüzde yerine kalan kapasiteyi göster (macOS pili gibi)";
 "appearance.show_time_marker_title" = "Zaman Geçiş İşaretçisini Göster";

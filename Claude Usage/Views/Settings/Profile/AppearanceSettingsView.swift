@@ -67,6 +67,18 @@ struct AppearanceSettingsView: View {
                         )
 
                         SettingToggle(
+                            title: "appearance.show_value_in_icon_title".localized,
+                            description: "appearance.show_value_in_icon_description".localized,
+                            isOn: Binding(
+                                get: { configuration.showValueInIcon },
+                                set: { newValue in
+                                    configuration.showValueInIcon = newValue
+                                    saveConfiguration()
+                                }
+                            )
+                        )
+
+                        SettingToggle(
                             title: "appearance.show_remaining_title".localized,
                             description: "appearance.show_remaining_description".localized,
                             isOn: Binding(

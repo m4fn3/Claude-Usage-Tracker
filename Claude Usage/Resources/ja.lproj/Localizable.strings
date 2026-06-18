@@ -444,6 +444,8 @@
 "appearance.monochrome_description" = "ステータスカラー（緑/オレンジ/赤）の代わりにアダプティブカラーを使用";
 "appearance.show_labels_title" = "アイコンラベルを表示";
 "appearance.show_labels_description" = "各メトリクスのプレフィックスラベル（S:、W:、API:）を表示";
+"appearance.show_value_in_icon_title" = "リングアイコンに数値を表示";
+"appearance.show_value_in_icon_description" = "「アイコン＋バー」スタイルで、リング中央に S/W の代わりに使用量の数値を表示";
 "appearance.show_remaining_title" = "残り容量のパーセンテージを表示";
 "appearance.show_remaining_description" = "使用済みパーセンテージの代わりに残り容量を表示（macOSバッテリーのように）";
 "appearance.pace_marker_section_title" = "ペースマーカー";
