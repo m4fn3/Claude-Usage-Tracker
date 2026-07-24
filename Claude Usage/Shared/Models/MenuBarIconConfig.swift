@@ -362,6 +362,10 @@ struct MenuBarIconConfiguration: Codable, Equatable {
     var showTimeMarker: Bool
     var showPaceMarker: Bool
     var usePaceColoring: Bool
+    /// When true, single-profile mode collapses to ONE menu bar item that shows
+    /// the Session and Week rings side by side (like Codex Usage Tracker), instead
+    /// of one separate item per metric.
+    var combineSideBySide: Bool
     var metrics: [MetricIconConfig]
 
     init(
@@ -373,6 +377,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         showTimeMarker: Bool = true,
         showPaceMarker: Bool = true,
         usePaceColoring: Bool = true,
+        combineSideBySide: Bool = true,
         metrics: [MetricIconConfig] = [
             .sessionDefault,
             .weekDefault,
@@ -387,6 +392,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         self.showTimeMarker = showTimeMarker
         self.showPaceMarker = showPaceMarker
         self.usePaceColoring = usePaceColoring
+        self.combineSideBySide = combineSideBySide
         self.metrics = metrics
     }
 
@@ -402,6 +408,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         case showTimeMarker
         case showPaceMarker
         case usePaceColoring
+        case combineSideBySide
         case metrics
     }
 
@@ -422,6 +429,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         showTimeMarker = try container.decodeIfPresent(Bool.self, forKey: .showTimeMarker) ?? true
         showPaceMarker = try container.decodeIfPresent(Bool.self, forKey: .showPaceMarker) ?? false
         usePaceColoring = try container.decodeIfPresent(Bool.self, forKey: .usePaceColoring) ?? false
+        combineSideBySide = try container.decodeIfPresent(Bool.self, forKey: .combineSideBySide) ?? true
         metrics = try container.decode([MetricIconConfig].self, forKey: .metrics)
     }
 
@@ -435,6 +443,7 @@ struct MenuBarIconConfiguration: Codable, Equatable {
         try container.encode(showTimeMarker, forKey: .showTimeMarker)
         try container.encode(showPaceMarker, forKey: .showPaceMarker)
         try container.encode(usePaceColoring, forKey: .usePaceColoring)
+        try container.encode(combineSideBySide, forKey: .combineSideBySide)
         try container.encode(metrics, forKey: .metrics)
         // Note: We don't encode monochromeMode anymore - it's only for reading legacy data
     }

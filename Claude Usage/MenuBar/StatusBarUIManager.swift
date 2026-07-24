@@ -93,6 +93,21 @@ final class StatusBarUIManager {
             // Use a special key to identify the default icon
             statusItems[.session] = statusItem  // Use session as placeholder key
             LoggingService.shared.logUIEvent("Status bar initialized with default app logo (no credentials)")
+        } else if config.combineSideBySide {
+            // Single combined item: Session + Week rings side by side
+            let statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+            statusItem.autosaveName = Self.autosaveName(for: .session)
+
+            if let button = statusItem.button {
+                button.action = action
+                button.target = target
+                button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+            } else {
+                LoggingService.shared.logWarning("Status bar button is nil for combined icon - screens: \(NSScreen.screens.count)")
+            }
+
+            statusItems[.session] = statusItem
+            LoggingService.shared.logUIEvent("Status bar initialized with combined side-by-side icon")
         } else {
             // Create status items for enabled metrics
             for metricConfig in config.enabledMetrics {
@@ -122,6 +137,9 @@ final class StatusBarUIManager {
         let newMetricTypes: Set<MenuBarMetricType>
         if config.enabledMetrics.isEmpty {
             // No credentials/metrics - show default app logo using .session as placeholder
+            newMetricTypes = [.session]
+        } else if config.combineSideBySide {
+            // Single combined item keyed by .session (Session + Week rings)
             newMetricTypes = [.session]
         } else {
             newMetricTypes = Set(config.enabledMetrics.map { $0.metricType })
@@ -635,6 +653,24 @@ final class StatusBarUIManager {
             return
         }
 
+        // Combined side-by-side mode: one item shows Session + Week rings.
+        if config.combineSideBySide {
+            guard let statusItem = statusItems[.session],
+                  let button = statusItem.button else { return }
+            let menuBarIsDark = button.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            let image = renderer.createSideBySideIcon(
+                usage: usage,
+                apiUsage: apiUsage,
+                globalConfig: config,
+                isDarkMode: menuBarIsDark,
+                colorMode: config.colorMode,
+                singleColorHex: config.singleColorHex
+            )
+            image.isTemplate = config.colorMode == .monochrome && !config.showPaceMarker
+            button.image = image
+            return
+        }
+
         // Normal metric display
         for metricConfig in config.enabledMetrics {
             guard let statusItem = statusItems[metricConfig.metricType],
@@ -670,6 +706,13 @@ final class StatusBarUIManager {
         usage: ClaudeUsage,
         apiUsage: APIUsage?
     ) {
+        // In combined mode a single item shows both metrics; repaint it as a whole.
+        let combinedConfig = ProfileManager.shared.activeProfile?.iconConfig ?? .default
+        if combinedConfig.combineSideBySide {
+            updateAllButtons(usage: usage, apiUsage: apiUsage)
+            return
+        }
+
         guard let statusItem = statusItems[metricType],
               let button = statusItem.button else {
             return

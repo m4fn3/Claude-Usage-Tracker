@@ -637,6 +637,143 @@ final class MenuBarIconRenderer {
         return image
     }
 
+    // MARK: - Side-by-Side Dual Ring (Session + Week in one item)
+
+    /// Renders the Session and Week rings side by side into ONE menu bar image,
+    /// mirroring the Codex Usage Tracker layout: each ring shows its percentage in
+    /// the center (no S/W letter), a status color, and an elapsed-time tick.
+    func createSideBySideIcon(
+        usage: ClaudeUsage,
+        apiUsage: APIUsage?,
+        globalConfig: MenuBarIconConfiguration,
+        isDarkMode: Bool,
+        colorMode: MenuBarColorMode,
+        singleColorHex: String
+    ) -> NSImage {
+        // Left = Week (W), right = Session (S).
+        let metricTypes: [MenuBarMetricType] = [.week, .session]
+        let circleSize: CGFloat = 22
+        let gap: CGFloat = 6
+        // Extra room around the rings so the surrounding outline stays clear of them.
+        let padX: CGFloat = 4
+        let padY: CGFloat = 3
+        let count = CGFloat(metricTypes.count)
+        let ringsWidth = count * circleSize + (count - 1) * gap
+        let totalWidth = ringsWidth + 2 * padX
+        let totalHeight = circleSize + 2 * padY
+
+        let image = NSImage(size: NSSize(width: totalWidth, height: totalHeight))
+        image.lockFocus()
+        defer { image.unlockFocus() }
+
+        let foregroundColor = menuBarForegroundColor(isDarkMode: isDarkMode)
+        let radius = (circleSize - 4.0) / 2
+
+        // Soft brand-colored background chip (Claude identifier) behind the rings.
+        // Red-orange (#EB6B42) rather than plain orange: its hue sits away from the
+        // yellow-green menu bar, so the chip stays clearly visible.
+        let chipColor = NSColor(srgbRed: 0.92, green: 0.42, blue: 0.26, alpha: 1.0)
+        let chipInset: CGFloat = 0.75
+        let chipRect = NSRect(x: chipInset, y: chipInset,
+                              width: totalWidth - 2 * chipInset, height: totalHeight - 2 * chipInset)
+        let chipPath = NSBezierPath(roundedRect: chipRect, xRadius: 6, yRadius: 6)
+        chipColor.withAlphaComponent(0.21).setFill()
+        chipPath.fill()
+
+        var xOffset: CGFloat = padX
+
+        for metricType in metricTypes {
+            let metricConfig = globalConfig.config(for: metricType)
+                ?? (metricType == .session ? .sessionDefault : .weekDefault)
+
+            let metricData = getMetricData(
+                metricType: metricType,
+                config: metricConfig,
+                usage: usage,
+                apiUsage: apiUsage,
+                showRemaining: globalConfig.showRemainingPercentage,
+                usePaceColoring: globalConfig.usePaceColoring
+            )
+
+            let timeMarkerFraction: CGFloat? = globalConfig.showTimeMarker
+                ? calculateTimeMarkerFraction(
+                    metricType: metricType,
+                    usage: usage,
+                    showRemaining: globalConfig.showRemainingPercentage
+                )
+                : nil
+
+            let paceStatus: PaceStatus? = {
+                guard globalConfig.showPaceMarker else { return nil }
+                guard let rawElapsed = calculateTimeMarkerFraction(
+                    metricType: metricType, usage: usage, showRemaining: false
+                ) else { return nil }
+                let rawUsed = metricType == .session ? usage.sessionPercentage : usage.weeklyPercentage
+                return PaceStatus.calculate(usedPercentage: rawUsed, elapsedFraction: Double(rawElapsed))
+            }()
+
+            let fillColor = getColorForMode(
+                colorMode, statusLevel: metricData.statusLevel,
+                singleColorHex: singleColorHex, isDarkMode: isDarkMode
+            )
+
+            let center = NSPoint(x: xOffset + circleSize / 2, y: totalHeight / 2)
+
+            // Background ring
+            let bgArcPath = NSBezierPath()
+            bgArcPath.appendArc(withCenter: center, radius: radius,
+                                startAngle: 0, endAngle: 360, clockwise: false)
+            foregroundColor.withAlphaComponent(0.15).setStroke()
+            bgArcPath.lineWidth = 3.0
+            bgArcPath.lineCapStyle = .round
+            bgArcPath.stroke()
+
+            // Progress ring (clockwise from 12 o'clock)
+            let percentage = metricData.percentage / 100.0
+            if percentage > 0 {
+                let startAngle: CGFloat = 90
+                let endAngle = startAngle - (360 * CGFloat(percentage))
+                let arcPath = NSBezierPath()
+                arcPath.appendArc(withCenter: center, radius: radius,
+                                  startAngle: startAngle, endAngle: endAngle, clockwise: true)
+                fillColor.setStroke()
+                arcPath.lineWidth = 3.0
+                arcPath.lineCapStyle = .round
+                arcPath.stroke()
+            }
+
+            // Elapsed-time tick
+            if let fraction = timeMarkerFraction {
+                let tickAngle = (90 - 360 * fraction) * .pi / 180
+                let innerR = radius - 2.0
+                let outerR = radius + 2.0
+                let tickPath = NSBezierPath()
+                tickPath.move(to: NSPoint(x: center.x + innerR * cos(tickAngle),
+                                          y: center.y + innerR * sin(tickAngle)))
+                tickPath.line(to: NSPoint(x: center.x + outerR * cos(tickAngle),
+                                          y: center.y + outerR * sin(tickAngle)))
+                drawPaceMarkerTick(tickPath, paceStatus: paceStatus,
+                                   showPaceMarker: globalConfig.showPaceMarker, isDarkMode: isDarkMode)
+            }
+
+            // Center percentage (bare number, smaller for 3 digits)
+            let valueText = "\(Int(metricData.percentage.rounded()))" as NSString
+            let fontSize: CGFloat = valueText.length >= 3 ? 7.0 : 9.0
+            let labelAttributes: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedDigitSystemFont(ofSize: fontSize, weight: .bold),
+                .foregroundColor: foregroundColor
+            ]
+            let labelSize = valueText.size(withAttributes: labelAttributes)
+            valueText.draw(at: NSPoint(x: center.x - labelSize.width / 2,
+                                       y: center.y - labelSize.height / 2),
+                           withAttributes: labelAttributes)
+
+            xOffset += circleSize + gap
+        }
+
+        return image
+    }
+
     private func createCompactStyle(
         metricType: MenuBarMetricType,
         metricData: MetricData,
