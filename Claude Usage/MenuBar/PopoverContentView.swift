@@ -61,12 +61,6 @@ struct PopoverContentView: View {
 
     @State private var isRefreshing = false
     @State private var showInsights = false
-    // Drives a custom entrance animation. The native NSPopover open animation is
-    // disabled (see MenuBarManager) because its animated window resize recurses
-    // infinitely on macOS 26/27; this fades/scales the content in from the top
-    // instead — a pure SwiftUI transform on a fixed-size view, so it can't trigger
-    // the window-resize loop.
-    @State private var appeared = false
     @StateObject private var profileManager = ProfileManager.shared
 
     private func profileInitials(for name: String) -> String {
@@ -207,14 +201,6 @@ struct PopoverContentView: View {
         .padding(.bottom, 8)
         .frame(width: 280)
         .background(VisualEffectBackground())
-        .opacity(appeared ? 1 : 0)
-        .scaleEffect(appeared ? 1 : 0.96, anchor: .top)
-        .onAppear {
-            appeared = false
-            withAnimation(.spring(response: 0.32, dampingFraction: 0.82)) {
-                appeared = true
-            }
-        }
     }
 }
 
@@ -642,18 +628,17 @@ struct SmartUsageDashboard: View {
                 timeDisplay: timeDisplay
             )
 
-            if usage.fableWeeklyTokensUsed > 0 {
-                UsageRow(
-                    title: "menubar.fable_usage".localized,
-                    tag: "menubar.weekly".localized,
-                    subtitle: nil,
-                    usedPercentage: usage.fableWeeklyPercentage,
-                    showRemaining: showRemainingPercentage,
-                    resetTime: usage.fableWeeklyResetTime,
-                    periodDuration: nil,
-                    timeDisplay: timeDisplay
-                )
-            }
+            // Always show the Fable row, even when weekly usage is 0.
+            UsageRow(
+                title: "menubar.fable_usage".localized,
+                tag: "menubar.weekly".localized,
+                subtitle: nil,
+                usedPercentage: usage.fableWeeklyPercentage,
+                showRemaining: showRemainingPercentage,
+                resetTime: usage.fableWeeklyResetTime,
+                periodDuration: nil,
+                timeDisplay: timeDisplay
+            )
 
             if usage.opusWeeklyTokensUsed > 0 {
                 UsageRow(

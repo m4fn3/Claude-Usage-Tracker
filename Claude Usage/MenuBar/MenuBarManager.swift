@@ -405,14 +405,17 @@ class MenuBarManager: NSObject, ObservableObject {
         let newPopover = NSPopover()
         newPopover.contentSize = Constants.WindowSizes.popoverSize
         newPopover.behavior = .semitransient
-        // Disabled to avoid an infinite layout-recursion crash on macOS 26/27.
-        // The hosting controller's sizingOptions/preferredContentSize (PR #200)
-        // keep the popover sized to its content; with animation on, each animated
-        // resize re-triggers layout (updateAnimatedWindowSize -> setFrame -> layout)
-        // and never converges, overflowing the main-thread stack. Disabling only the
-        // animation breaks the loop while preserving content sizing/positioning.
-        // See Discussion #64.
-        newPopover.animates = false
+        // On macOS 26/27 the native open animation recurses infinitely with the
+        // auto-sizing hosting controller (sizingOptions/preferredContentSize, PR #200):
+        // each animated resize re-triggers layout (updateAnimatedWindowSize -> setFrame
+        // -> layout) and never converges, overflowing the main-thread stack. Keep it off
+        // there, but on older macOS use the native popover open animation (same as Codex
+        // Usage Tracker). See Discussion #64.
+        if #available(macOS 26, *) {
+            newPopover.animates = false
+        } else {
+            newPopover.animates = true
+        }
         newPopover.delegate = self
         newPopover.contentViewController = createContentViewController()
 
@@ -459,14 +462,17 @@ class MenuBarManager: NSObject, ObservableObject {
         let popover = NSPopover()
         popover.contentSize = Constants.WindowSizes.popoverSize
         popover.behavior = .semitransient  // Changed to allow detaching
-        // Disabled to avoid an infinite layout-recursion crash on macOS 26/27.
-        // The hosting controller's sizingOptions/preferredContentSize (PR #200)
-        // keep the popover sized to its content; with animation on, each animated
-        // resize re-triggers layout (updateAnimatedWindowSize -> setFrame -> layout)
-        // and never converges, overflowing the main-thread stack. Disabling only the
-        // animation breaks the loop while preserving content sizing/positioning.
-        // See Discussion #64.
-        popover.animates = false
+        // On macOS 26/27 the native open animation recurses infinitely with the
+        // auto-sizing hosting controller (sizingOptions/preferredContentSize, PR #200):
+        // each animated resize re-triggers layout (updateAnimatedWindowSize -> setFrame
+        // -> layout) and never converges, overflowing the main-thread stack. Keep it off
+        // there, but on older macOS use the native popover open animation (same as Codex
+        // Usage Tracker). See Discussion #64.
+        if #available(macOS 26, *) {
+            popover.animates = false
+        } else {
+            popover.animates = true
+        }
         popover.delegate = self
 
         popover.contentViewController = createContentViewController()
