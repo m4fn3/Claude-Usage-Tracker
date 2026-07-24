@@ -39,6 +39,13 @@ class MenuBarManager: NSObject, ObservableObject {
     // Event monitor for closing popover on outside click
     private var eventMonitor: Any?
 
+    // Timestamp of the most recent popover close. Used to debounce the
+    // status-item click that dismisses the popover: that same click also fires
+    // togglePopover, which would otherwise immediately re-show the popover
+    // (the "click makes it bounce back instead of closing" race).
+    private var lastPopoverCloseDate: Date = .distantPast
+    private weak var lastPopoverCloseButton: NSStatusBarButton?
+
     // Detached window reference (when popover is detached)
     private var detachedWindow: NSWindow?
 
@@ -398,7 +405,14 @@ class MenuBarManager: NSObject, ObservableObject {
         let newPopover = NSPopover()
         newPopover.contentSize = Constants.WindowSizes.popoverSize
         newPopover.behavior = .semitransient
-        newPopover.animates = true
+        // Disabled to avoid an infinite layout-recursion crash on macOS 26/27.
+        // The hosting controller's sizingOptions/preferredContentSize (PR #200)
+        // keep the popover sized to its content; with animation on, each animated
+        // resize re-triggers layout (updateAnimatedWindowSize -> setFrame -> layout)
+        // and never converges, overflowing the main-thread stack. Disabling only the
+        // animation breaks the loop while preserving content sizing/positioning.
+        // See Discussion #64.
+        newPopover.animates = false
         newPopover.delegate = self
         newPopover.contentViewController = createContentViewController()
 
@@ -445,7 +459,14 @@ class MenuBarManager: NSObject, ObservableObject {
         let popover = NSPopover()
         popover.contentSize = Constants.WindowSizes.popoverSize
         popover.behavior = .semitransient  // Changed to allow detaching
-        popover.animates = true
+        // Disabled to avoid an infinite layout-recursion crash on macOS 26/27.
+        // The hosting controller's sizingOptions/preferredContentSize (PR #200)
+        // keep the popover sized to its content; with animation on, each animated
+        // resize re-triggers layout (updateAnimatedWindowSize -> setFrame -> layout)
+        // and never converges, overflowing the main-thread stack. Disabling only the
+        // animation breaks the loop while preserving content sizing/positioning.
+        // See Discussion #64.
+        popover.animates = false
         popover.delegate = self
 
         popover.contentViewController = createContentViewController()
@@ -532,16 +553,33 @@ class MenuBarManager: NSObject, ObservableObject {
                     // the @Published profile properties set earlier in this method
                     popover.close()
                     stopMonitoringForOutsideClicks()
+                    // Activate first so the popover appears over a full-screen Space.
+                    // An .accessory app that isn't active renders the popover on the
+                    // desktop Space, hidden behind any frontmost full-screen app.
+                    NSApp.activate(ignoringOtherApps: true)
                     popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
                     currentPopoverButton = button
                     startMonitoringForOutsideClicks()
                 }
             } else {
-                // Popover not shown - show it
+                // Popover not shown - show it.
+                // Guard against the dismiss/re-open race: if the popover was just
+                // closed (e.g. the outside-click monitor handled this same click a
+                // moment before the button action fired), treat this click as the
+                // dismissing click and don't immediately re-open it. Only for the
+                // button the popover was anchored to — a click on a different
+                // status item is a deliberate open, not the dismissing click.
+                if button === lastPopoverCloseButton,
+                   Date().timeIntervalSince(lastPopoverCloseDate) < 0.25 {
+                    return
+                }
                 // Stop any existing monitor first
                 stopMonitoringForOutsideClicks()
                 // Update content view controller for current profile data
                 popover.contentViewController = createContentViewController()
+                // Activate first so the popover appears over a full-screen Space
+                // (otherwise an inactive .accessory app draws it on the desktop Space).
+                NSApp.activate(ignoringOtherApps: true)
                 popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
                 currentPopoverButton = button
                 startMonitoringForOutsideClicks()
@@ -568,6 +606,8 @@ class MenuBarManager: NSObject, ObservableObject {
         popover.behavior = .transient
         popover.animates = true
         popover.contentViewController = NSHostingController(rootView: PeakHoursPopoverView())
+        // Activate first so the popover appears over a full-screen Space.
+        NSApp.activate(ignoringOtherApps: true)
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         peakHoursPopover = popover
     }
@@ -611,7 +651,9 @@ class MenuBarManager: NSObject, ObservableObject {
     private func closePopover() {
         popover?.performClose(nil)
         stopMonitoringForOutsideClicks()
+        lastPopoverCloseButton = currentPopoverButton
         currentPopoverButton = nil
+        lastPopoverCloseDate = Date()
     }
 
     private func startMonitoringForOutsideClicks() {
@@ -909,21 +951,10 @@ class MenuBarManager: NSObject, ObservableObject {
     private func hasAnyAvailableCredentials() -> Bool {
         guard let profile = profileManager.activeProfile else { return false }
 
-        // Profile-local credentials (Claude.ai, API Console, saved CLI OAuth)
-        if profile.hasUsageCredentials { return true }
-
-        // Fall back to system Keychain CLI credentials
-        do {
-            if let systemCreds = try ClaudeCodeSyncService.shared.readSystemCredentials(),
-               !ClaudeCodeSyncService.shared.isTokenExpired(systemCreds),
-               ClaudeCodeSyncService.shared.extractAccessToken(from: systemCreds) != nil {
-                return true
-            }
-        } catch {
-            LoggingService.shared.log("MenuBarManager.hasAnyAvailableCredentials: system keychain check failed: \(error.localizedDescription)")
-        }
-
-        return false
+        // Profile-local credentials (Claude.ai, API Console, saved CLI OAuth),
+        // then the cached system Keychain CLI fallback.
+        return profile.hasUsageCredentials
+            || ClaudeCodeSyncService.shared.hasUsableSystemCredentials()
     }
 
     private func setupMultiProfileMode() {
@@ -973,7 +1004,11 @@ class MenuBarManager: NSObject, ObservableObject {
 
     /// Refreshes usage data for all profiles selected for multi-profile display
     private func refreshAllSelectedProfiles() {
-        let selectedProfiles = profileManager.profiles.filter { $0.isSelectedForDisplay && $0.hasUsageCredentials }
+        // Filter on `hasAnyCredentials` (not `hasUsageCredentials`) so that profiles
+        // whose CLI OAuth token has expired are still polled — `fetchUsageForProfile`
+        // will transparently refresh expired tokens via the refresh_token grant.
+        // Excluding them here would prevent the refresh path from ever running.
+        let selectedProfiles = profileManager.profiles.filter { $0.isSelectedForDisplay && $0.hasAnyCredentials }
 
         guard !selectedProfiles.isEmpty else {
             LoggingService.shared.log("MenuBarManager: No selected profiles with usage credentials to refresh")
@@ -1111,11 +1146,23 @@ class MenuBarManager: NSObject, ObservableObject {
             return try await apiService.fetchUsageData(sessionKey: sessionKey, organizationId: orgId)
         }
 
-        // Priority 2: Saved CLI OAuth token from profile
-        if let cliJSON = profile.cliCredentialsJSON,
-           !ClaudeCodeSyncService.shared.isTokenExpired(cliJSON),
-           let accessToken = ClaudeCodeSyncService.shared.extractAccessToken(from: cliJSON) {
-            return try await apiService.fetchUsageData(oauthAccessToken: accessToken)
+        // Priority 2: CLI OAuth credentials.
+        // `ensureFreshCredentials` picks the source automatically:
+        //   - If `profile.customKeychainServiceName` is set → pull fresh from that keychain entry
+        //     (which Claude Code rotates during normal CLI use). No network refresh needed when
+        //     the token there is still valid; otherwise transparently refresh via the
+        //     refresh_token grant and write back to both keychain and profile cache.
+        //   - Otherwise → use the profile's cached `cliCredentialsJSON`, refreshing if expired.
+        // If `ensureFreshCredentials` returns nil (e.g. network failure during refresh), fall
+        // back to the stored cliCredentialsJSON so a still-valid cached token isn't wasted.
+        if profile.cliCredentialsJSON != nil || profile.customKeychainServiceName != nil {
+            let usableJSON = await ClaudeCodeSyncService.shared.ensureFreshCredentials(for: profile.id)
+                ?? profile.cliCredentialsJSON
+            if let usableJSON = usableJSON,
+               !ClaudeCodeSyncService.shared.isTokenExpired(usableJSON),
+               let accessToken = ClaudeCodeSyncService.shared.extractAccessToken(from: usableJSON) {
+                return try await apiService.fetchUsageData(oauthAccessToken: accessToken)
+            }
         }
 
         // Priority 3: System Keychain CLI OAuth token
@@ -1772,6 +1819,14 @@ extension MenuBarManager: NSPopoverDelegate {
         return true
     }
 
+    func popoverDidClose(_ notification: Notification) {
+        // Record every close (transient dismiss, outside-click monitor, or
+        // explicit close) so togglePopover can debounce the dismissing click
+        // and avoid the "click bounces the popover back open" race.
+        lastPopoverCloseDate = Date()
+        lastPopoverCloseButton = currentPopoverButton
+    }
+
     func detachableWindow(for popover: NSPopover) -> NSWindow? {
         // Stop monitoring for outside clicks when detaching
         stopMonitoringForOutsideClicks()
@@ -1804,6 +1859,8 @@ extension MenuBarManager: NSPopoverDelegate {
         window.setContentSize(NSSize(width: 280, height: 600))
         window.isReleasedWhenClosed = false
         window.level = .floating
+        // Allow a torn-off popover to stay on a full-screen app's Space.
+        window.collectionBehavior.insert(.fullScreenAuxiliary)
         window.isRestorable = false
         window.delegate = self
         window.backgroundColor = .clear
